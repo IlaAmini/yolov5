@@ -260,15 +260,13 @@ class DetectionModel(BaseModel):
 
         # Build strides, anchors
         m = self.model[-1]  # Detect()
-        if isinstance(m, (Detect, Segment)):
-            s = 256  # 2x min stride
-            m.inplace = self.inplace
-            forward = lambda x: self.forward(x)[0] if isinstance(m, Segment) else self.forward(x)
-            m.stride = torch.tensor([s / x.shape[-2] for x in forward(torch.zeros(1, ch, s, s))])  # forward
-            check_anchor_order(m)
-            m.anchors /= m.stride.view(-1, 1, 1)
-            self.stride = m.stride
-            self._initialize_biases()  # only run once
+        s = 256  # 2x min stride
+        m.inplace = self.inplace
+        m.stride = torch.tensor([s / x.shape[-2] for x in self._forward_train(torch.zeros(1, ch, s, s))])  # forward
+        check_anchor_order(m)
+        m.anchors /= m.stride.view(-1, 1, 1)
+        self.stride = m.stride
+        self._initialize_biases()  # only run once
 
         # Init weights, biases
         initialize_weights(self)
